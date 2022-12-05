@@ -10,7 +10,7 @@ const DEFVALA: u8 = 0x06;
 const DEFVALB: u8 = 0x07; 
 const INTCONA: u8 = 0x08; 
 const INTCONB: u8 = 0x09; 
-const IOCON: u8 = 0x0A; // //is the same
+const IOCON: u8 = 0x0A;
 const GPPUA: u8 = 0x0C; 
 const GPPUB: u8 = 0x0D; 
 const INTFA: u8 = 0x0E; 
@@ -310,7 +310,6 @@ impl MCP23017 {
     /// Set an output pin to a specific value
     /// Pin value is relative to a bank, so must be be between 0 and 7
     fn read_and_change_pin<'a>(&self, register: u8, pin: &'a Pin, value: bool, cur_value: Option<u8>) -> Result<u8, Error<'a>> {
-        //assert pin >= 0 and pin < 8, "Pin number %s is invalid, only 0-%s are valid" % (pin, 7)
         // if we don't know what the current register's full value is, get it first
         let cur_value = match cur_value {
             Some(cur_value) => cur_value,
@@ -329,8 +328,6 @@ impl MCP23017 {
     /// pin value is relative to the total number of gpio, so 0-15 on mcp23017
     /// returns the whole register value
     pub fn pull_up(self, pin: &Pin, value: State) -> Result<u16, Error> {
-        // assert pin >= 0 and pin < self.num_gpios, "Pin number %s is invalid, only 0-%s are valid" % (pin, self.num_gpios)
-        // if the pin is < 8, use register from first bank
         let pull = match pin.bank {
             Bank::A => self.read_and_change_pin(GPPUA, pin, value.into(), None)?,
             Bank::B => self.read_and_change_pin(GPPUA, pin, value.into(), None)?,
@@ -343,7 +340,6 @@ impl MCP23017 {
     /// pin value is relative to the total number of gpio, so 0-15 on mcp23017
     /// returns the value of the combined IODIRA and IODIRB registers
     pub fn pin_mode<'a>(&mut self, pin: &'a Pin, mode: Mode) -> Result<u16, Error<'a>> {
-        //assert pin >= 0 and pin < self.num_gpios, "Pin number %s is invalid, only 0-%s are valid" % (pin, self.num_gpios)
         let mode = match pin.bank {
             Bank::A => self.read_and_change_pin(IODIRA, pin, mode.into(), None)?,
             Bank::B => self.read_and_change_pin(IODIRB, pin, mode.into(), None)?,
@@ -355,8 +351,6 @@ impl MCP23017 {
 
     /// set an output pin to a specific value
     pub fn output<'a>(&self, pin: &'a Pin, value: State) -> Result<u8, Error<'a>>{
-        //assert pin >= 0 and pin < self.num_gpios, "Pin number %s is invalid, only 0-%s are valid" % (pin, self.num_gpios)
-        //assert self.direction & (1 << pin) == 0, "Pin %s not set to output" % pin
         if matches!(pin.mode(self.direction), Mode::Output) {
             return Err(Error::WrongMode(pin))
         }
@@ -369,8 +363,6 @@ impl MCP23017 {
     /// read the value of a pin
     /// return a 1 or 0
     pub fn input<'a>(&self, pin: &'a Pin) -> Result<State, Error<'a>> {
-        //assert pin >= 0 and pin < self.num_gpios, "Pin number %s is invalid, only 0-%s are valid" % (pin, self.num_gpios)
-        //assert self.direction & (1 << pin) != 0, "Pin %s not set to input" % pin
         if matches!(pin.mode(self.direction), Mode::Input) {
             return Err(Error::WrongMode(pin))
         }
@@ -399,8 +391,6 @@ impl MCP23017 {
     /// mirror - are the int pins mirrored? 1=yes, 0=INTA associated with PortA, INTB associated with PortB
     /// intpol - polarity of the int pin. 1=active-high, 0=active-low
     pub fn config_system_interrupt<'a>(&mut self, mirror: Feature, intpol: State) -> Result<(), Error<'a>>{
-        //assert mirror == 0 or mirror == 1, "Valid options for MIRROR: 0 or 1"
-        //assert intpol == 0 or intpol == 1, "Valid options for INTPOL: 0 or 1"
         // get current register settings
         let mut register_value = self.i2c.smbus_read_byte(IOCON).map_err(|e| Error::I2C(e))?;
         // set mirror bit
@@ -417,9 +407,6 @@ impl MCP23017 {
 
     /// configure interrupt setting for a specific pin. set on or off
     pub fn config_pin_interrupt<'a>(&self, pin: &'a Pin, enabled: Feature, compare_mode: Compare, defval: Option<State>) -> Result<(), Error<'a>>{
-        // assert pin >= 0 and pin < self.num_gpios, "Pin number %s is invalid, only 0-%s are valid" % (pin, self.num_gpios)
-        // assert self.direction & (1 << pin) != 0, "Pin %s not set to input! Must be set to input before you can change interrupt config." % pin
-        // assert enabled == 0 or enabled == 1, "Valid options: 0 or 1"
         if matches!(pin.mode(self.direction), Mode::Input) {
             return Err(Error::WrongMode(pin))
         }
@@ -445,7 +432,6 @@ impl MCP23017 {
 
     /// private function to return pin and value from an interrupt
     pub fn read_interrupt_register<'a>(&self, port: Bank) -> Result<Option<(Pin, State)>, Error<'a>> {
-        //assert port == 0 or port == 1, "Port to get interrupts from must be 0 or 1!"
         match port {
             Bank::A => {
                 let interrupted_a = self.i2c.smbus_read_byte(INTFA).map_err(|e| Error::I2C(e))?;
@@ -483,7 +469,6 @@ impl MCP23017 {
     /// returns pin and the value
     /// pin is 0 - 15, not relative to bank
     pub fn read_interrupt<'a>(self, port: Bank) -> Result<Option<(Pin, State)>, Error<'a>> {
-        //assert self.mirrorEnabled == 1 or port != None, "Mirror not enabled and port not specified - call with port (0 or 1) or set mirrored."
         // if the mirror is enabled, we don't know what port caused the interrupt, so read both
         match self.mirrored {
             Feature::On => {
