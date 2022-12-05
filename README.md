@@ -2,6 +2,8 @@
 
 This library provides an interface for the MCP23017 gpio expander chip. It is based on a python library of the same name, found [here](https://github.com/GillesC/MCP23017-RPI-Lib).
 
+You can view the docs [here](https://ellabellla.github.io/mcp23017-rpi-lib/mcp23017_rpi_lib/).
+
 ## Example - Blink
 ```rust
 let mut mcp = MCP23017::new(0x20, 1).unwrap();
