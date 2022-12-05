@@ -16,5 +16,26 @@ loop {
 }  
 ```
 
+## Pin Conversion
+
+| PIN | MCP PIN | Name |
+| --- | ------- | ---- |
+| 0   | 21      | GPA0 |
+| 1   | 22      | GPA1 |
+| 2   | 23      | GPA2 |
+| 3   | 24      | GPA3 |
+| 4   | 25      | GPA4 |
+| 5   | 26      | GPA5 |
+| 6   | 27      | GPA6 |
+| 7   | 28      | GPA7 |
+| 8   | 1       | GPB0 |
+| 9   | 2       | GPB1 |
+| 10  | 3       | GPB2 |
+| 11  | 4       | GPB3 |
+| 12  | 5       | GPB4 |
+| 13  | 6       | GPB5 |
+| 14  | 7       | GPB6 |
+| 15  | 8       | GPB7 |
+
 ## License
 This software is provided under the MIT license. Click [here](./LICENSE) to view. The original python library is also licensed under MIT. It can be found [here](./LICENSE_OLD).
