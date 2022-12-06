@@ -338,7 +338,7 @@ impl MCP23017 {
 
     /// Used to set the pullUp resistor setting for a pin.
     /// Returns the whole register value.
-    pub fn pull_up(self, pin: &Pin, value: State) -> Result<u16, Error> {
+    pub fn pull_up<'a>(&self, pin: &'a Pin, value: State) -> Result<u16, Error<'a>> {
         let pull = match pin.bank {
             Bank::A => self.read_and_change_pin(GPPUA, pin, value.into(), None)?,
             Bank::B => self.read_and_change_pin(GPPUA, pin, value.into(), None)?,
