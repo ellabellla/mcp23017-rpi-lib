@@ -31,9 +31,9 @@ const NUM_GPIO: u8 = 16;
 
 #[derive(Debug)]
 /// MCP23017 Error
-pub enum Error<'a> { 
+pub enum Error { 
     I2C(rppal::i2c::Error),
-    WrongMode(&'a Pin),
+    WrongMode(Pin),
     InterruptsForcedClear,
 }
 
@@ -306,7 +306,7 @@ pub struct MCP23017 {
 }
 
 impl MCP23017 {
-    pub fn new<'a>(address: u16, bus: u8) -> Result<MCP23017, Error<'a>> {
+    pub fn new(address: u16, bus: u8) -> Result<MCP23017, Error> {
         let mut i2c = I2c::with_bus(bus).map_err(|e| Error::I2C(e))?;
         i2c.set_slave_address(address).map_err(|e| Error::I2C(e))?;
 
@@ -328,7 +328,7 @@ impl MCP23017 {
     }
 
     /// Set an output pin to a specific value.
-    fn read_and_change_pin<'a>(&self, register: u8, pin: &'a Pin, value: bool, cur_value: Option<u8>) -> Result<u8, Error<'a>> {
+    fn read_and_change_pin(&self, register: u8, pin: &Pin, value: bool, cur_value: Option<u8>) -> Result<u8, Error> {
         // if we don't know what the current register's full value is, get it first
         let cur_value = match cur_value {
             Some(cur_value) => cur_value,
@@ -345,7 +345,7 @@ impl MCP23017 {
 
     /// Used to set the pullUp resistor setting for a pin.
     /// Returns the whole register value.
-    pub fn pull_up<'a>(&self, pin: &'a Pin, value: State) -> Result<u16, Error<'a>> {
+    pub fn pull_up(&self, pin: &Pin, value: State) -> Result<u16, Error> {
         let pull = match pin.bank {
             Bank::A => self.read_and_change_pin(GPPUA, pin, value.into(), None)?,
             Bank::B => self.read_and_change_pin(GPPUA, pin, value.into(), None)?,
@@ -356,7 +356,7 @@ impl MCP23017 {
 
     /// Set pin to either input or output mode.
     /// Returns the value of the combined IODIRA and IODIRB registers.
-    pub fn pin_mode<'a>(&mut self, pin: &'a Pin, mode: Mode) -> Result<u16, Error<'a>> {
+    pub fn pin_mode(&mut self, pin: &Pin, mode: Mode) -> Result<u16, Error> {
         let mode = match pin.bank {
             Bank::A => self.read_and_change_pin(IODIRA, pin, mode.into(), None)?,
             Bank::B => self.read_and_change_pin(IODIRB, pin, mode.into(), None)?,
@@ -367,9 +367,9 @@ impl MCP23017 {
     }
 
     /// Set an output pin to a specific value.
-    pub fn output<'a>(&self, pin: &'a Pin, value: State) -> Result<u8, Error<'a>>{
+    pub fn output(&self, pin: &Pin, value: State) -> Result<u8, Error>{
         if matches!(pin.mode(self.direction), Mode::Output) {
-            return Err(Error::WrongMode(pin))
+            return Err(Error::WrongMode(pin.clone()))
         }
         match pin.bank {
             Bank::A => self.read_and_change_pin(GPIOA, pin, value.into(), self.i2c.smbus_read_byte(OLATA).ok()),
@@ -378,9 +378,9 @@ impl MCP23017 {
     }
 
     /// Read the value of a pin.
-    pub fn input<'a>(&self, pin: &'a Pin) -> Result<State, Error<'a>> {
+    pub fn input(&self, pin: &Pin) -> Result<State, Error> {
         if matches!(pin.mode(self.direction), Mode::Input) {
-            return Err(Error::WrongMode(pin))
+            return Err(Error::WrongMode(pin.clone()))
         }
         
         // reads the whole register then compares the value of the specific pin
@@ -394,7 +394,7 @@ impl MCP23017 {
 
 
     /// Read the value of a pin regardless of it's mode
-    pub fn current_val<'a>(&self, pin: &'a Pin) -> Result<State, Error<'a>> {
+    pub fn current_val(&self, pin: &Pin) -> Result<State, Error> {
         // reads the whole register then compares the value of the specific pin
         let bank_value = match pin.bank {
             Bank::A => self.i2c.smbus_read_byte(GPIOA).map_err(|e| Error::I2C(e))?,
@@ -407,7 +407,7 @@ impl MCP23017 {
     /// Configure system interrupt settings.
     /// Mirror - are the int pins mirrored?
     /// Intpol - polarity of the int pin.
-    pub fn config_system_interrupt<'a>(&mut self, mirror: Feature, intpol: State) -> Result<(), Error<'a>>{
+    pub fn config_system_interrupt(&mut self, mirror: Feature, intpol: State) -> Result<(), Error>{
         // get current register settings
         let mut register_value = self.i2c.smbus_read_byte(IOCON).map_err(|e| Error::I2C(e))?;
         // set mirror bit
@@ -423,9 +423,9 @@ impl MCP23017 {
     }
 
     /// Configure interrupt setting for a specific pin. set on or off.
-    pub fn config_pin_interrupt<'a>(&self, pin: &'a Pin, enabled: Feature, compare_mode: Compare, defval: Option<State>) -> Result<(), Error<'a>>{
+    pub fn config_pin_interrupt(&self, pin: &Pin, enabled: Feature, compare_mode: Compare, defval: Option<State>) -> Result<(), Error>{
         if matches!(pin.mode(self.direction), Mode::Input) {
-            return Err(Error::WrongMode(pin))
+            return Err(Error::WrongMode(pin.clone()))
         }
 
         match pin.bank {
@@ -448,7 +448,7 @@ impl MCP23017 {
     }
 
     /// Private function to return pin and value from an interrupt
-    fn read_interrupt_register<'a>(&self, port: Bank) -> Result<Option<(Pin, State)>, Error<'a>> {
+    fn read_interrupt_register(&self, port: Bank) -> Result<Option<(Pin, State)>, Error> {
         match port {
             Bank::A => {
                 let interrupted_a = self.i2c.smbus_read_byte(INTFA).map_err(|e| Error::I2C(e))?;
@@ -483,7 +483,7 @@ impl MCP23017 {
     /// The function determines the pin that caused the interrupt and gets its value.
     /// The interrupt is cleared.
     /// Returns pin and the value.
-    pub fn read_interrupt<'a>(self, port: Bank) -> Result<Option<(Pin, State)>, Error<'a>> {
+    pub fn read_interrupt(self, port: Bank) -> Result<Option<(Pin, State)>, Error> {
         // if the mirror is enabled, we don't know what port caused the interrupt, so read both
         match self.mirrored {
             Feature::On => {
@@ -497,7 +497,7 @@ impl MCP23017 {
 
     /// Check to see if there is an interrupt pending 3 times in a row (indicating it's stuck) 
     /// and if needed clear the interrupt without reading values.
-    pub fn clear_interrupts<'a>(&self) -> Result<(), Error<'a>> {
+    pub fn clear_interrupts(&self) -> Result<(), Error> {
         if self.i2c.smbus_read_byte(INTFA).map_err(|e| Error::I2C(e))? > 0
             || self.i2c.smbus_read_byte(INTFB).map_err(|e| Error::I2C(e))? > 0 {
             
@@ -520,7 +520,7 @@ impl MCP23017 {
     }
 
     /// Reset all pins and interrupts
-    pub fn reset<'a>(&self) -> Result<(), Error<'a>> {
+    pub fn reset(&self) -> Result<(), Error> {
         self.i2c.smbus_write_byte(IODIRA, 0xFF).map_err(|e| Error::I2C(e))?;  // all inputs on port A
         self.i2c.smbus_write_byte(IODIRB, 0xFF).map_err(|e| Error::I2C(e))?;  // all inputs on port B
         // make sure the output registers are set to off
