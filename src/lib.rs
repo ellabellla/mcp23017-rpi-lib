@@ -37,6 +37,16 @@ pub enum Error {
     InterruptsForcedClear,
 }
 
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::I2C(e) => f.write_fmt(format_args!("I2C error, {}", e)),
+            Error::WrongMode(pin) => f.write_fmt(format_args!("Pin {} was in the wrong mode", pin)),
+            Error::InterruptsForcedClear => f.write_str("Interrupts had to be forced clear"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 /// Pin mode
 pub enum Mode {
@@ -244,6 +254,12 @@ pub struct Pin {
 impl Display for Pin {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("Pin: {} ({}), Bank: {}", self.pin, self.orig, self.bank))
+    }
+}
+
+impl From<&Pin> for u8 {
+    fn from(p: &Pin) -> Self {
+        p.orig
     }
 }
 
