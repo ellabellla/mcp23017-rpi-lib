@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-use std::{thread::sleep, time::Duration, fmt::Display};
+use std::{thread::sleep, time::Duration, fmt::Display, hash::Hash};
 
 use rppal::i2c::I2c;
 
@@ -216,7 +216,7 @@ impl From<bool> for Compare {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// GPIO bank
 pub enum Bank {
     A,
@@ -288,6 +288,13 @@ impl PartialOrd for Pin {
             Some(core::cmp::Ordering::Equal) => self.pin.partial_cmp(&other.pin),
             ord => return ord,
         }
+    }
+}
+
+impl Hash for Pin {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.pin.hash(state);
+        self.bank.hash(state);
     }
 }
 
