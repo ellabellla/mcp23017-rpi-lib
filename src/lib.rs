@@ -268,9 +268,9 @@ impl Pin {
     pub(crate) fn apply_u16(&self, bitmap: u16, value: u8) -> u16 {
         let mut bytes = bitmap.to_be_bytes();
         if self.shift != 8 {
-            bytes[0] = value.to_be_bytes()[0];
-        } else {
             bytes[1] = value.to_be_bytes()[0];
+        } else {
+            bytes[0] = value.to_be_bytes()[0];
         }
         return u16::from_be_bytes(bytes)
     }
