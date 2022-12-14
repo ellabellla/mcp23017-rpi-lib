@@ -499,7 +499,7 @@ impl MCP23017 {
     /// The function determines the pin that caused the interrupt and gets its value.
     /// The interrupt is cleared.
     /// Returns pin and the value.
-    pub fn read_interrupt(self, port: Bank) -> Result<Option<(Pin, State)>, Error> {
+    pub fn read_interrupt(&self, port: Bank) -> Result<Option<(Pin, State)>, Error> {
         // if the mirror is enabled, we don't know what port caused the interrupt, so read both
         match self.mirrored {
             Feature::On => {
